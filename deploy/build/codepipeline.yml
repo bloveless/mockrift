@@ -1,0 +1,292 @@
+Parameters:
+  BranchName:
+    Description: GitHub branch name
+    Type: String
+    Default: master
+  EmailAddress:
+    Type: String
+    Description: Email address to add to the notification topic by default.
+  RepositoryName:
+    Description: GitHub repository name
+    Type: String
+    Default: test
+  GitHubOwner:
+    Type: String
+  GitHubSecret:
+    Type: String
+    NoEcho: true
+  GitHubOAuthToken:
+    Type: String
+    NoEcho: true
+Resources:
+  ArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+  ArtifactStoreBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref ArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:PutObject'
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - ArtifactStoreBucket
+                  - Arn
+                - /*
+            Condition:
+              StringNotEquals:
+                's3:x-amz-server-side-encryption': 'aws:kms'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - ArtifactStoreBucket
+                  - Arn
+                - /*
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+  PipelineWebhook:
+    Type: 'AWS::CodePipeline::Webhook'
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: !Ref GitHubSecret
+      Filters:
+        - JsonPath: $.ref
+          MatchEquals: 'refs/heads/{Branch}'
+      TargetPipeline: !Ref Pipeline
+      TargetAction: SourceAction
+      TargetPipelineVersion: !GetAtt
+        - Pipeline
+        - Version
+      RegisterWithThirdParty: true
+  SnippetboxCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Description: Build your project
+      ServiceRole: !Ref CodeBuildRole
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: deploy/build/buildspec.yml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0-1.12.0
+        PrivilegedMode: True
+        EnvironmentVariables:
+          - Name: CURRENT_ENVIRONMENT
+            Type: PLAINTEXT
+            Value: staging
+  Pipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      RoleArn: !GetAtt
+        - CodePipelineServiceRole
+        - Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref RepositoryName
+                Branch: !Ref BranchName
+                OAuthToken: !Ref GitHubOAuthToken
+                PollForSourceChanges: false
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              OutputArtifacts:
+                - Name: CodeBuild
+              InputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ProjectName: !Ref SnippetboxCodeBuildProject
+              RunOrder: 1
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactStoreBucket
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventRule"
+      EventPattern:
+        source:
+          - aws.codepipeline
+        detail-type:
+          - CodePipeline Pipeline Execution State Change
+        resources:
+          - !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:pipeline:${Pipeline}"
+        detail:
+          state:
+            - STARTED
+            - FAILED
+            - SUCCEEDED
+      State: ENABLED
+      Targets:
+        - Arn:
+            Ref: SNSTopic
+          Id: PipelineNotificationTopic
+          InputTransformer:
+            InputTemplate: '"The Pipeline <pipeline> has <state>. Go to https://us-west-2.console.aws.amazon.com/codesuite/codepipeline/pipelines/<pipeline>/view" '
+            InputPathsMap:
+              pipeline: "$.detail.pipeline"
+              state: "$.detail.state"
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint:
+            Ref: EmailAddress
+          Protocol: email
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: SnsTopicPolicy
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref SNSTopic
+      Topics:
+        - !Ref SNSTopic
+  CodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: CloudWatch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: '*'
+                Action:
+                  - 'cloudwatch:*'
+                Effect: Allow
+              - Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/SnippetboxCodeBuildProject*:log-stream:*'
+                Action:
+                  - 'logs:*'
+                Effect: Allow
+        - PolicyName: S3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource:
+                  - 'arn:aws:s3:::snippetboxpipeline-artifactstorebucket-*'
+                  - 'arn:aws:s3:::snippetboxpipeline-artifactstorebucket-*/*'
+                Action:
+                  - 's3:*'
+                Effect: Allow
+        - PolicyName: SSM
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource:
+                  - 'arn:aws:ssm:us-west-2:391324319136:parameter/COREOS_KUBERNETES/UTIL_SA_TOKEN'
+                  - 'arn:aws:ssm:us-west-2:391324319136:parameter/COREOS_KUBERNETES/CA'
+                Action:
+                  - 'ssm:GetParameters'
+                Effect: Allow
+        - PolicyName: ECR
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: '*'
+                Action:
+                  - 'ecr:GetAuthorizationToken'
+                Effect: Allow
+              - Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/todone-server'
+                Action:
+                  - 'ecr:InitiateLayerUpload'
+                  - 'ecr:UploadLayerPart'
+                  - 'ecr:CompleteLayerUpload'
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:PutImage'
+                Effect: Allow
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: IAM
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: '*'
+                Action:
+                  - 'iam:PassRole'
+                Effect: Allow
+        - PolicyName: S3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource:
+                  - 'arn:aws:s3:::snippetboxpipeline-artifactstorebucket-*'
+                  - 'arn:aws:s3:::snippetboxpipeline-artifactstorebucket-*/*'
+                Action:
+                  - 's3:*'
+                Effect: Allow
+        - PolicyName: CodeBuild
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:project/SnippetboxCodeBuildProject*'
+                Action:
+                  - 'codebuild:*'
+                Effect: Allow
+        - PolicyName: CloudWatch
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource: '*'
+                Action:
+                  - 'cloudwatch:*'
+                Effect: Allow
+              - Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/SnippetboxCodeBuildProject*:log-stream:*'
+                Action:
+                  - 'logs:*'
+                Effect: Allow
+

@@ -1,0 +1,18 @@
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: todone-crt
+spec:
+  secretName: todone-crt
+  dnsNames:
+    - todone.brennonloveless.com
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - todone.brennonloveless.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+

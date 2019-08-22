@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todone-server
+  namespace: todone
+  labels:
+    component: todone-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: todone-server
+  template:
+    metadata:
+      labels:
+        component: todone-server
+    spec:
+      containers:
+        - name: server
+          image: 391324319136.dkr.ecr.us-west-2.amazonaws.com/todone-server
+          ports:
+            - containerPort: 4000

@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: deploy/docker/server/Dockerfile
+      target: builder
+      args:
+        go_release: debug
+    command: ["make", "debug"]
+    volumes:
+      - ./mockrift:/home/appuser/app:cached
+    ports:
+      - 3499:3499
