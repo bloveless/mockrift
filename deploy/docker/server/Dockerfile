@@ -2,6 +2,8 @@ FROM golang:1.11-alpine as builder
 
 ENV CGO_ENABLED 0
 
+EXPOSE 3499 40000
+
 RUN apk update \
     && apk add --no-cache git make g++ \
     && rm -rf /var/cache/apk/* \
@@ -16,11 +18,13 @@ USER appuser
 
 RUN make
 
-CMD ["make", "debug"]
+CMD ["make", "run-reflex"]
 
 ####---- Production Image ----####
 
 FROM alpine as production
+
+EXPOSE 3499 40000
 
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group

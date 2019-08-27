@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/go-http-utils/logger"
 	"github.com/rs/cors"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,8 +19,8 @@ func getUrl(regex *regexp.Regexp, rUrl *url.URL) string {
 	return string(regex.ReplaceAll([]byte(rUrl.String()), []byte("/$2")))
 }
 
-func createClientRequest(method string, url string, body io.Reader) *http.Request {
-	r, rErr := http.NewRequest(method, url, body)
+func createClientRequest(method string, url string, body []byte) *http.Request {
+	r, rErr := http.NewRequest(method, url, bytes.NewReader(body))
 	if rErr != nil {
 		log.Fatal(rErr)
 	}
@@ -37,13 +37,12 @@ func doClientRequest(c *http.Client, r *http.Request) *http.Response {
 	return res
 }
 
-func copyHeadersToClient(w http.ResponseWriter, cReq *http.Request, cRes *http.Response) {
-	for hKey, hValues := range w.Header() {
+func copyHeaders(headers http.Header, w http.ResponseWriter) {
+	for hKey, hValues := range headers {
 		for _, hValue := range hValues {
-			cReq.Header.Add(hKey, hValue)
+			w.Header().Add(hKey, hValue)
 		}
 	}
-	w.WriteHeader(cRes.StatusCode)
 }
 
 func copyBodyToClient(w http.ResponseWriter, cBody []byte) {
@@ -69,20 +68,37 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		pUrl := getUrl(urlRegex, req.URL)
-		cReq := createClientRequest(req.Method, "http://host.docker.internal:4000"+pUrl, req.Body)
-		defer cReq.Body.Close()
-
-		cRes := doClientRequest(client, cReq)
-
-		cBody, cBodyErr := ioutil.ReadAll(cRes.Body)
-		if cBodyErr != nil {
-			log.Fatal(cBodyErr)
+		reqBody, reqBodyErr := ioutil.ReadAll(req.Body)
+		if reqBodyErr != nil {
+			log.Fatal("Unable to read request body")
 		}
 
-		fmt.Printf("Client Response body: %v\n", string(cBody))
+		storedRes := findResponseByRequestParams(req.Method, req.URL.String(), reqBody)
+		if storedRes != nil {
+			fmt.Println("Sending response from memory")
+			copyHeaders(storedRes.Header, w)
+			w.WriteHeader(storedRes.StatusCode)
+			copyBodyToClient(w, storedRes.Body)
+		} else {
+			fmt.Println("Proxying response to real backend")
+			cReq := createClientRequest(req.Method, "http://host.docker.internal:4000"+pUrl, reqBody)
+			defer cReq.Body.Close()
 
-		copyHeadersToClient(w, cReq, cRes)
-		copyBodyToClient(w, cBody)
+			cRes := doClientRequest(client, cReq)
+
+			cBody, cBodyErr := ioutil.ReadAll(cRes.Body)
+			if cBodyErr != nil {
+				log.Fatal(cBodyErr)
+			}
+
+			fmt.Printf("Client response body: %v\n", string(cBody))
+
+			copyHeaders(cReq.Header, w)
+			w.WriteHeader(cRes.StatusCode)
+			copyBodyToClient(w, cBody)
+
+			storeResponseAndRequest(req, reqBody, cRes, cBody)
+		}
 	})
 
 	// cors.Default() setup the middleware with default options being

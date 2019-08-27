@@ -3,20 +3,21 @@ all: build
 
 BIN_DIR=$(PWD)/bin
 
+install-reflex:
+	go get github.com/cespare/reflex
+
 dependencies:
 	go mod download
 
 build: dependencies
-	go build -o $(BIN_DIR)/graphql cmd/web/*.go
+	go build -o $(BIN_DIR)/mockrift cmd/web/*.go
 
 run: build
-	$(BIN_DIR)/graphql
+	$(BIN_DIR)/mockrift
+
+run-reflex: install-reflex
+	reflex -c reflex.conf
 
 help: build
-	$(BIN_DIR)/graphql -help
+	$(BIN_DIR)/mockrift -help
 
-install-reflex:
-	go get github.com/cespare/reflex
-
-debug: dependencies install-reflex
-	reflex -c reflex.conf
