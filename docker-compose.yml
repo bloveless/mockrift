@@ -8,8 +8,8 @@ services:
       target: builder
       args:
         go_release: debug
-#    command: ["make", "run-reflex"]
-    command: ["make", "run-delve"] # Use for debugging
+    command: ["make", "run-reflex"]
+#    command: ["make", "run-delve"] # Use for debugging
     volumes:
       - ./mockrift:/home/appuser/app:cached
     ports:
