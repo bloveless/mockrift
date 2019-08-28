@@ -1,7 +1,7 @@
 version: "3.7"
 
 services:
-  server:
+  server: &server
     build:
       context: .
       dockerfile: deploy/docker/server/Dockerfile
@@ -9,9 +9,12 @@ services:
       args:
         go_release: debug
     command: ["make", "run-reflex"]
-#    command: ["make", "run-delve"] # Use for debugging
     volumes:
       - ./mockrift:/home/appuser/app:cached
     ports:
       - 3499:3499
       - 40000:40000
+
+  server-debug:
+    <<: *server
+    command: ["make", "run-delve"] # Use for debugging
