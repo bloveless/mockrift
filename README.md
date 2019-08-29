@@ -5,13 +5,13 @@ What is mockrift. Contract testing for developers and CI/CD environments.
 ToDo For Standard Development:
 - [x] Proxy Requests to backend
 - [x] Store/respond with Requests/Responses from backend and serve those responses
-- [ ] Store multiple requests/responses from backend and allow user to switch between responses. (1)
 - [ ] Save requests/responses to the file system and reload them when mockrift starts
+- [ ] Store multiple requests/responses from backend and allow user to switch between responses. (1)
 - [ ] Create a UI that can be used by developers to pick which response to server from a request on-the-fly.
 - [ ] Create an algorithm for comparing stored requests which will create a match percentage and match requests by their
 highest match percentage (2)
 - [ ] Allow the user to duplicate/edit stored responses from the UI
-
+- [ ] All exceptions are log.Fatal right now. Figure out the best way to handle exceptions rather than dying.
 
 1) In the beginning the user will be able to pass in a specific header in order to match responses with requests.
 Eventually there will be a UI that developers will be able to use, but the header will continue in order to configure

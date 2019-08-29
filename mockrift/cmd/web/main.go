@@ -15,8 +15,16 @@ import (
 	"time"
 )
 
-func getUrl(regex *regexp.Regexp, rUrl *url.URL) string {
-	return string(regex.ReplaceAll([]byte(rUrl.String()), []byte("/$2")))
+func getUrlParts(regex *regexp.Regexp, url *url.URL) (string, string) {
+	appName, pUrl := getUrl(regex, url)
+	pUrl = "/" + pUrl
+
+	return appName, pUrl
+}
+
+func getUrl(regex *regexp.Regexp, rUrl *url.URL) (string, string) {
+	matches := regex.FindStringSubmatch(rUrl.String())
+	return matches[1], matches[2]
 }
 
 func createClientRequest(method string, url string, body []byte) *http.Request {
@@ -56,25 +64,26 @@ func main() {
 	addr := flag.String("addr", ":3499", "The address to run the mockrift server")
 	flag.Parse()
 
-	urlRegex, urlRegexErr := regexp.Compile("/(.+?)/(.*)")
-	if urlRegexErr != nil {
-		log.Fatal(urlRegexErr)
-	}
+	urlRegex := regexp.MustCompile("/(.+?)/(.*)")
 
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
 
+	recordOnly := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		pUrl := getUrl(urlRegex, req.URL)
+		appName, pUrl := getUrlParts(urlRegex, req.URL)
+
 		reqBody, reqBodyErr := ioutil.ReadAll(req.Body)
 		if reqBodyErr != nil {
 			log.Fatal("Unable to read request body")
 		}
 
-		storedRes := findResponseByRequestParams(req.Method, req.URL.String(), reqBody)
-		if storedRes != nil {
+		loadRequestsFromFile(appName)
+		storedRes := findResponseByRequestParams(req.Method, pUrl, reqBody)
+		if !recordOnly && storedRes != nil {
 			fmt.Println("Sending response from memory")
 			copyHeaders(storedRes.Header, w)
 			w.WriteHeader(storedRes.StatusCode)
@@ -97,7 +106,7 @@ func main() {
 			w.WriteHeader(cRes.StatusCode)
 			copyBodyToClient(w, cBody)
 
-			storeResponseAndRequest(req, reqBody, cRes, cBody)
+			storeResponseAndRequest(appName, req, pUrl, reqBody, cRes, cBody)
 		}
 	})
 

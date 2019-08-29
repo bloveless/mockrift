@@ -36,4 +36,4 @@ WORKDIR /home/appuser/app
 
 USER appuser
 
-CMD ["sh", "-c", "./bin/mockrift"]
+ENTRYPOINT ["sh", "-c", "./bin/mockrift"]

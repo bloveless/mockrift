@@ -8,13 +8,17 @@ services:
       target: builder
       args:
         go_release: debug
+    environment:
+      RUN_COMMAND: run
     command: ["make", "run-reflex"]
     volumes:
       - ./mockrift:/home/appuser/app:cached
+      - ./mockrift/requests:/home/appuser/app/requests:cached
     ports:
       - 3499:3499
       - 40000:40000
 
   server-debug:
     <<: *server
-    command: ["make", "run-delve"] # Use for debugging
+    environment:
+      RUN_COMMAND: run-delve
