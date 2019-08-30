@@ -119,7 +119,7 @@ func storeResponseAndRequest(app string, req *http.Request, url string, reqBody 
 		log.Fatal(marshalErr)
 	}
 
-	writeErr := ioutil.WriteFile("/home/appuser/app/requests/"+app+".json", requestsJson, 0644)
+	writeErr := ioutil.WriteFile("./requests/"+app+".json", requestsJson, 0644)
 	if writeErr != nil {
 		log.Fatal("Unable to write json to file: " + writeErr.Error())
 	}

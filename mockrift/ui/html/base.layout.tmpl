@@ -1,0 +1,27 @@
+{{define "base"}}
+    <!doctype html>
+    <html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <title>{{.Shared.AppName}}</title>
+        <link rel="stylesheet icon" href="/static/img/favicon.ico" type="image/x-icon">
+    </head>
+    <body>
+        <header>
+            <h1><a href="/">{{.Shared.AppName}}</a></h1>
+        </header>
+        <nav>
+            <div>
+                <a href="/">Home</a>
+            </div>
+        </nav>
+        <section>
+            {{with .Shared.Flash}}
+                <div class="flash">{{.Shared.Flash}}</div>
+            {{end}}
+            {{template "body" .}}
+        </section>
+        {{template "footer" .}}
+    </body>
+    </html>
+{{end}}

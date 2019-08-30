@@ -73,8 +73,25 @@ func main() {
 	recordOnly := false
 
 	mux := http.NewServeMux()
+
+	tc, newTcErr := newTemplateCache("./ui/html")
+	if newTcErr != nil {
+		log.Fatal("Unable to create template cache: " + newTcErr.Error())
+	}
+
+	p := &Pages{
+		templateCache: tc,
+	}
+
+	mux.HandleFunc("/admin", p.handleHome)
+
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		appName, pUrl := getUrlParts(urlRegex, req.URL)
+
+		fmt.Println("Handling rest")
 
 		reqBody, reqBodyErr := ioutil.ReadAll(req.Body)
 		if reqBodyErr != nil {
