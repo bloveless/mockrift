@@ -10,6 +10,7 @@ services:
         go_release: debug
     environment:
       RUN_COMMAND: run
+      GIN_MODE: debug
     command: ["make", "run-reflex"]
     volumes:
       - ./mockrift:/home/appuser/app:cached

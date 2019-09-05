@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/go-http-utils/logger"
-	"github.com/rs/cors"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"time"
 )
@@ -45,10 +44,10 @@ func doClientRequest(c *http.Client, r *http.Request) *http.Response {
 	return res
 }
 
-func copyHeaders(headers http.Header, w http.ResponseWriter) {
+func copyHeaders(headers http.Header, ctx *gin.Context) {
 	for hKey, hValues := range headers {
 		for _, hValue := range hValues {
-			w.Header().Add(hKey, hValue)
+			ctx.Header(hKey, hValue)
 		}
 	}
 }
@@ -64,7 +63,7 @@ func main() {
 	addr := flag.String("addr", ":3499", "The address to run the mockrift server")
 	flag.Parse()
 
-	urlRegex := regexp.MustCompile("/(.+?)/(.*)")
+	// urlRegex := regexp.MustCompile("/(.+?)/(.*)")
 
 	client := &http.Client{
 		Timeout: time.Second * 10,
@@ -72,42 +71,32 @@ func main() {
 
 	recordOnly := false
 
-	mux := http.NewServeMux()
+	router := gin.Default()
+	router.Use(cors.Default())
+	router.LoadHTMLGlob("./ui/html/*")
 
-	tc, newTcErr := newTemplateCache("./ui/html")
-	if newTcErr != nil {
-		log.Fatal("Unable to create template cache: " + newTcErr.Error())
-	}
+	router.StaticFS("/static", http.Dir("./ui/static"))
+	router.GET("/admin", handleHome)
 
-	p := &Pages{
-		templateCache: tc,
-	}
+	router.Any("/m/:app/*path", func(ctx *gin.Context) {
+		appName := ctx.Param("app")
+		path := ctx.Param("path")
 
-	mux.HandleFunc("/admin", p.handleHome)
-
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		appName, pUrl := getUrlParts(urlRegex, req.URL)
-
-		fmt.Println("Handling rest")
-
-		reqBody, reqBodyErr := ioutil.ReadAll(req.Body)
+		reqBody, reqBodyErr := ioutil.ReadAll(ctx.Request.Body)
 		if reqBodyErr != nil {
 			log.Fatal("Unable to read request body")
 		}
 
 		loadRequestsFromFile(appName)
-		storedRes := findResponseByRequestParams(req.Method, pUrl, reqBody)
+		storedRes := findResponseByRequestParams(ctx.Request.Method, path, reqBody)
 		if !recordOnly && storedRes != nil {
 			fmt.Println("Sending response from memory")
-			copyHeaders(storedRes.Header, w)
-			w.WriteHeader(storedRes.StatusCode)
-			copyBodyToClient(w, storedRes.Body)
+			copyHeaders(storedRes.Header, ctx)
+			ctx.Writer.WriteHeader(storedRes.StatusCode)
+			copyBodyToClient(ctx.Writer, storedRes.Body)
 		} else {
 			fmt.Println("Proxying response to real backend")
-			cReq := createClientRequest(req.Method, "http://host.docker.internal:4000"+pUrl, reqBody)
+			cReq := createClientRequest(ctx.Request.Method, "http://host.docker.internal:4000"+path, reqBody)
 			defer cReq.Body.Close()
 
 			cRes := doClientRequest(client, cReq)
@@ -119,17 +108,20 @@ func main() {
 
 			fmt.Printf("Client response body: %v\n", string(cBody))
 
-			copyHeaders(cReq.Header, w)
-			w.WriteHeader(cRes.StatusCode)
-			copyBodyToClient(w, cBody)
+			copyHeaders(cReq.Header, ctx)
+			ctx.Writer.WriteHeader(cRes.StatusCode)
+			copyBodyToClient(ctx.Writer, cBody)
 
-			storeResponseAndRequest(appName, req, pUrl, reqBody, cRes, cBody)
+			storeResponseAndRequest(appName, ctx.Request, path, reqBody, cRes, cBody)
 		}
 	})
 
-	// cors.Default() setup the middleware with default options being
-	// all origins accepted with simple methods (GET, POST). See
-	// documentation below for more options.
-	corsHandler := cors.Default().Handler(mux)
-	log.Fatal(http.ListenAndServe(*addr, logger.Handler(corsHandler, os.Stdout, logger.DevLoggerType)))
+	s := &http.Server{
+		Addr:           *addr,
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	log.Fatal(s.ListenAndServe())
 }
