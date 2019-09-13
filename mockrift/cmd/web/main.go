@@ -116,6 +116,8 @@ func main() {
 		}
 	})
 
+	log.Println("Hello again test again")
+
 	s := &http.Server{
 		Addr:           *addr,
 		Handler:        router,

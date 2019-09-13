@@ -9,17 +9,15 @@ services:
       args:
         go_release: debug
     environment:
-      RUN_COMMAND: run
       GIN_MODE: debug
-    command: ["make", "run-reflex"]
+    command: ["modd", "--debug", "--notify", "-f", "modd.conf"]
     volumes:
-      - ./mockrift:/home/appuser/app:cached
-      - ./mockrift/requests:/home/appuser/app/requests:cached
+      - ./mockrift:/home/appuser/app
+      - ./mockrift/requests:/home/appuser/app/requests
     ports:
       - 3499:3499
       - 40000:40000
 
   server-debug:
     <<: *server
-    environment:
-      RUN_COMMAND: run-delve
+    command: ["dlv", "debug", "cmd/web/*.go", "--headless=true", "--listen=\":40000\"", "--log", "--accept-multiclient", "--api-version=2", "--output=./bin/__debug_bin"]

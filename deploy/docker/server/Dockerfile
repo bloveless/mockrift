@@ -1,28 +1,30 @@
-FROM golang:1.12-alpine as builder
+FROM golang:1.13 as builder
 
 ENV CGO_ENABLED 1
 ENV GIN_MODE release
 
 EXPOSE 3499 40000
 
-RUN apk update \
-    && apk add --no-cache git make gcc musl-dev \
+RUN apt-get update \
+    && apt-get install -y git make gcc \
     && rm -rf /var/cache/apk/* \
-    && adduser -D appuser \
+    && useradd appuser \
     && mkdir -p /home/appuser/app \
-    && chown -R appuser:appuser /home/appuser
+    && chown -R appuser:appuser /home/appuser \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN go get -u github.com/go-delve/delve/cmd/dlv \
-	&& go get -u github.com/cespare/reflex
+    && go get -u github.com/cortesi/modd/cmd/modd
 
 COPY --chown=appuser:appuser ./mockrift /home/appuser/app
 WORKDIR /home/appuser/app
 
 USER appuser
 
-RUN make
+RUN go mod download \
+    && go build -o ./bin/mockrift cmd/web/*.go
 
-CMD ["make", "run-reflex"]
+CMD ["./bin/mockrift"]
 
 ####---- Production Image ----####
 
