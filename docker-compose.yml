@@ -1,7 +1,7 @@
 version: "3.7"
 
 services:
-  server: &server
+  server:
     build:
       context: .
       dockerfile: deploy/docker/server/Dockerfile
@@ -10,14 +10,8 @@ services:
         go_release: debug
     environment:
       GIN_MODE: debug
-    command: ["modd", "--debug", "--notify", "-f", "modd.conf"]
+    command: ["modd", "-f", "modd.conf"]
     volumes:
       - ./mockrift:/home/appuser/app
-      - ./mockrift/requests:/home/appuser/app/requests
     ports:
       - 3499:3499
-      - 40000:40000
-
-  server-debug:
-    <<: *server
-    command: ["dlv", "debug", "cmd/web/*.go", "--headless=true", "--listen=\":40000\"", "--log", "--accept-multiclient", "--api-version=2", "--output=./bin/__debug_bin"]

@@ -1,63 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
+	"mockrift/pkg/helper"
 	"net/http"
-	"net/url"
-	"regexp"
 	"time"
 )
-
-func getUrlParts(regex *regexp.Regexp, url *url.URL) (string, string) {
-	appName, pUrl := getUrl(regex, url)
-	pUrl = "/" + pUrl
-
-	return appName, pUrl
-}
-
-func getUrl(regex *regexp.Regexp, rUrl *url.URL) (string, string) {
-	matches := regex.FindStringSubmatch(rUrl.String())
-	return matches[1], matches[2]
-}
-
-func createClientRequest(method string, url string, body []byte) *http.Request {
-	r, rErr := http.NewRequest(method, url, bytes.NewReader(body))
-	if rErr != nil {
-		log.Fatal(rErr)
-	}
-
-	return r
-}
-
-func doClientRequest(c *http.Client, r *http.Request) *http.Response {
-	res, resErr := c.Do(r)
-	if resErr != nil {
-		log.Fatal(resErr)
-	}
-
-	return res
-}
-
-func copyHeaders(headers http.Header, ctx *gin.Context) {
-	for hKey, hValues := range headers {
-		for _, hValue := range hValues {
-			ctx.Header(hKey, hValue)
-		}
-	}
-}
-
-func copyBodyToClient(w http.ResponseWriter, cBody []byte) {
-	_, wErr := w.Write(cBody)
-	if wErr != nil {
-		log.Fatal(wErr)
-	}
-}
 
 func main() {
 	addr := flag.String("addr", ":3499", "The address to run the mockrift server")
@@ -91,15 +44,15 @@ func main() {
 		storedRes := findResponseByRequestParams(ctx.Request.Method, path, reqBody)
 		if !recordOnly && storedRes != nil {
 			fmt.Println("Sending response from memory")
-			copyHeaders(storedRes.Header, ctx)
+			helper.CopyHeaders(storedRes.Header, ctx)
 			ctx.Writer.WriteHeader(storedRes.StatusCode)
-			copyBodyToClient(ctx.Writer, storedRes.Body)
+			helper.CopyBodyToClient(ctx.Writer, storedRes.Body)
 		} else {
 			fmt.Println("Proxying response to real backend")
-			cReq := createClientRequest(ctx.Request.Method, "http://host.docker.internal:4000"+path, reqBody)
+			cReq := helper.CreateClientRequest(ctx.Request.Method, "http://host.docker.internal:4000"+path, reqBody)
 			defer cReq.Body.Close()
 
-			cRes := doClientRequest(client, cReq)
+			cRes := helper.DoClientRequest(client, cReq)
 
 			cBody, cBodyErr := ioutil.ReadAll(cRes.Body)
 			if cBodyErr != nil {
@@ -108,15 +61,13 @@ func main() {
 
 			fmt.Printf("Client response body: %v\n", string(cBody))
 
-			copyHeaders(cReq.Header, ctx)
+			helper.CopyHeaders(cReq.Header, ctx)
 			ctx.Writer.WriteHeader(cRes.StatusCode)
-			copyBodyToClient(ctx.Writer, cBody)
+			helper.CopyBodyToClient(ctx.Writer, cBody)
 
 			storeResponseAndRequest(appName, ctx.Request, path, reqBody, cRes, cBody)
 		}
 	})
-
-	log.Println("Hello again test again")
 
 	s := &http.Server{
 		Addr:           *addr,

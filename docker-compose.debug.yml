@@ -1,0 +1,7 @@
+version: "3.7"
+
+services:
+  server:
+    command: ["modd", "-f", "modd.debug.conf"]
+    ports:
+      - 40000:40000

@@ -1,0 +1,9 @@
+version: "2"
+
+options:
+  verbose: true
+syncs:
+  mockrift-app-sync:
+    src: "./mockrift"
+    sync_userid: 1000
+    sync_groupid: 1000
