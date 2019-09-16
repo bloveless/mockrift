@@ -1,17 +1,17 @@
-FROM golang:1.13 as builder
+FROM golang:1.13-alpine as builder
 
 ENV CGO_ENABLED 1
 ENV GIN_MODE release
 
 EXPOSE 3499 40000
 
-RUN apt-get update \
-    && apt-get install -y git make gcc \
+RUN apk update \
+    && apk add --no-cache git \
     && rm -rf /var/cache/apk/* \
-    && useradd appuser \
+    && addgroup -g 1000 appuser \
+    && adduser -S -u 1000 -G appuser appuser \
     && mkdir -p /home/appuser/app \
-    && chown -R appuser:appuser /home/appuser \
-    && rm -rf /var/lib/apt/lists/*
+    && chown -R appuser:appuser /home/appuser
 
 RUN go get -u github.com/go-delve/delve/cmd/dlv \
     && go get -u github.com/cortesi/modd/cmd/modd
@@ -39,4 +39,4 @@ WORKDIR /home/appuser/app
 
 USER appuser
 
-ENTRYPOINT ["sh", "-c", "./bin/mockrift"]
+CMD ["./bin/mockrift"]

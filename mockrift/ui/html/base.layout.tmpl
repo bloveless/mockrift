@@ -6,7 +6,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        <title>{{.Shared.AppName}}</title>
+        <title>{{.AppName}}</title>
         <link rel="stylesheet icon" href="/static/img/favicon.ico" type="image/x-icon">
 
         <style>
@@ -31,7 +31,7 @@
     </head>
     <body>
         <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-            <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">{{.Shared.AppName}}</a>
+            <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">{{.AppName}}</a>
         </nav>
 
         <div class="container-fluid">
@@ -71,7 +71,7 @@
                 </nav>
 
                 <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
-                    {{range .Shared.Flash}}
+                    {{range .Flash}}
                         <div class="alert alert-{{.Type}}" role="alert">
                             {{.Message}}
                         </div>

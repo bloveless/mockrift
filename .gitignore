@@ -1,4 +1,5 @@
 .idea
 mockrift/bin
 mockrift/.config
-mockrift/requests
+mockrift/requests/*
+!mockrift/requests/.gitkeep

@@ -8,7 +8,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 )
+
+type App struct {
+	Name     string
+	Requests []*StoredRequest
+}
 
 type StoredResponse struct {
 	Active     bool        `json:"active"`
@@ -25,37 +31,59 @@ type StoredRequest struct {
 	Responses []*StoredResponse `json:"responses"`
 }
 
-var currentApp string
-var requests []*StoredRequest
-
-func loadRequestsFromFile(app string) {
-	if currentApp == app {
-		return
+func getAllApps() []*App {
+	appFiles, gErr := filepath.Glob("./requests/*.json")
+	if gErr != nil {
+		log.Fatal("Error loading request files: " + gErr.Error())
 	}
 
-	fmt.Println("Loading stored requests from /home/appuser/app/requests/" + app + ".json")
-	jsonFile, err := os.Open("/home/appuser/app/requests/" + app + ".json")
+	var apps []*App
+
+	for _, appFile := range appFiles {
+		appBytes, rErr := ioutil.ReadFile(appFile)
+		if rErr != nil {
+			log.Fatal("Unable to read app file: " + rErr.Error())
+		}
+
+		var app App
+		uErr := json.Unmarshal(appBytes, &app)
+		if uErr != nil {
+			log.Fatal("Unable to unmarshal app json file: " + uErr.Error())
+		}
+
+		apps = append(apps, &app)
+	}
+
+	return apps
+}
+
+// getAppFromFile will load any stored requests for an app prefix.
+func getAppFromFile(appName string) *App {
+	var a App
+
+	fmt.Println("Loading app from /home/appuser/app/requests/" + appName + ".json")
+	jsonFile, err := os.Open("/home/appuser/app/requests/" + appName + ".json")
 	if err != nil {
 		// If the file doesn't exist then that is fine. We'll just save the file upon the first response.
-		return
+		return nil
 	}
 	defer jsonFile.Close()
 
 	jsonBytes, jsonBytesErr := ioutil.ReadAll(jsonFile)
 	if jsonBytesErr != nil {
-		log.Fatal(fmt.Printf("Unable to read JSON file (%s): %s\n", app, jsonBytesErr.Error()))
+		log.Fatal(fmt.Printf("Unable to read JSON file (%s): %s\n", appName, jsonBytesErr.Error()))
 	}
 
-	unmarshalErr := json.Unmarshal(jsonBytes, &requests)
+	unmarshalErr := json.Unmarshal(jsonBytes, &a)
 	if unmarshalErr != nil {
 		log.Fatal("Unable to unmarshal json file: " + unmarshalErr.Error())
 	}
 
-	currentApp = app
+	return &a
 }
 
-func findRequest(m string, url string, body []byte) *StoredRequest {
-	for _, r := range requests {
+func (a *App) findRequest(m string, url string, body []byte) *StoredRequest {
+	for _, r := range a.Requests {
 		if r.Method == m && r.URL == url {
 			fmt.Printf("Matched method (%s) and url (%s)\n", m, url)
 			if bytes.Compare(r.Body, body) == 0 {
@@ -68,8 +96,8 @@ func findRequest(m string, url string, body []byte) *StoredRequest {
 	return nil
 }
 
-func findResponseByRequestParams(m string, url string, body []byte) *StoredResponse {
-	r := findRequest(m, url, body)
+func (a *App) findResponseByRequestParams(m string, url string, body []byte) *StoredResponse {
+	r := a.findRequest(m, url, body)
 	if r == nil {
 		return nil
 	}
@@ -83,7 +111,7 @@ func findResponseByRequestParams(m string, url string, body []byte) *StoredRespo
 	return r.Responses[0]
 }
 
-func storeResponseAndRequest(app string, req *http.Request, url string, reqBody []byte, res *http.Response, resBody []byte) {
+func (a *App) storeResponseAndRequest(req *http.Request, url string, reqBody []byte, res *http.Response, resBody []byte) {
 	sRes := StoredResponse{
 		Active:     false,
 		Header:     res.Header,
@@ -91,7 +119,7 @@ func storeResponseAndRequest(app string, req *http.Request, url string, reqBody 
 		Body:       resBody,
 	}
 
-	r := findRequest(req.Method, url, reqBody)
+	r := a.findRequest(req.Method, url, reqBody)
 	if r != nil {
 		if len(r.Responses) == 0 {
 			sRes.Active = true
@@ -111,16 +139,21 @@ func storeResponseAndRequest(app string, req *http.Request, url string, reqBody 
 			},
 		}
 
-		requests = append(requests, &sReq)
+		a.Requests = append(a.Requests, &sReq)
 	}
 
-	requestsJson, marshalErr := json.MarshalIndent(requests, "", "  ")
+	requestsJson, marshalErr := json.MarshalIndent(a.Requests, "", "  ")
 	if marshalErr != nil {
 		log.Fatal(marshalErr)
 	}
 
-	writeErr := ioutil.WriteFile("./requests/"+app+".json", requestsJson, 0644)
-	if writeErr != nil {
-		log.Fatal("Unable to write json to file: " + writeErr.Error())
+	f, oErr := os.OpenFile("./requests/"+a.Name+".json", os.O_WRONLY|os.O_CREATE, 0644)
+	if oErr != nil {
+		log.Fatal("Unable to open file for writing: " + oErr.Error())
+	}
+
+	_, wErr := f.Write(requestsJson)
+	if wErr != nil {
+		log.Fatal("Unable to write json to file: " + wErr.Error())
 	}
 }
