@@ -2,6 +2,9 @@
 
 What is mockrift. Contract testing for developers and CI/CD environments.
 
+Companion app for testing [Shopping Cart Demo](https://github.com/bloveless/demo-shopping-cart)
+GraphQL first then REST later.
+
 ToDo For Standard Development:
 - [x] Proxy Requests to backend
 - [x] Store/respond with Requests/Responses from backend and serve those responses
