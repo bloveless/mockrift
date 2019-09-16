@@ -10,7 +10,7 @@ import (
 )
 
 func addMockingRoutes(router *gin.Engine, client *http.Client, recordOnly bool) {
-	var a App
+	var a *App
 	router.Any("/m/:app/*path", func(ctx *gin.Context) {
 		appName := ctx.Param("app")
 		path := ctx.Param("path")
