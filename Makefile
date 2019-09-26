@@ -1,7 +1,10 @@
-.PHONY: all clean debug
+.PHONY: all build clean debug
 
 all:
-	docker-compose up
+	docker-compose up server frontend
+
+build:
+	docker-compose up frontend-build
 
 clean:
 	docker-compose down

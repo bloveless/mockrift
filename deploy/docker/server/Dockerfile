@@ -1,7 +1,6 @@
 FROM golang:1.13-alpine as builder
 
 ENV CGO_ENABLED 1
-ENV GIN_MODE release
 
 EXPOSE 3499 40000
 

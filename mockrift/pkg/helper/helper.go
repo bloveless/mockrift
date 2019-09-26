@@ -1,8 +1,9 @@
 package helper
 
+// TODO: This should not stay here. This is here just to experiment with packages.
+
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"net/url"
@@ -32,10 +33,10 @@ func DoClientRequest(c *http.Client, r *http.Request) *http.Response {
 	return res
 }
 
-func CopyHeaders(headers http.Header, ctx *gin.Context) {
+func CopyHeaders(headers http.Header, w http.ResponseWriter) {
 	for hKey, hValues := range headers {
 		for _, hValue := range hValues {
-			ctx.Header(hKey, hValue)
+			w.Header().Add(hKey, hValue)
 		}
 	}
 }

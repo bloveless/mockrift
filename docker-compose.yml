@@ -6,8 +6,6 @@ services:
       context: .
       dockerfile: deploy/docker/server/Dockerfile
       target: builder
-      args:
-        go_release: debug
     environment:
       GIN_MODE: debug
     command: ["modd", "-f", "modd.conf"]
@@ -15,3 +13,24 @@ services:
       - ./mockrift:/home/appuser/app
     ports:
       - 3499:3499
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/docker/frontend/Dockerfile
+    command: ["sh", "-c", "yarn install && yarn start"]
+    volumes:
+      - ./react-ui:/app:cached
+      - /app/node_modules
+    ports:
+      - 8080:8080
+
+  frontend-build:
+    build:
+      context: .
+      dockerfile: deploy/docker/frontend/Dockerfile
+    command: ["sh", "-c", "yarn install && yarn build"]
+    volumes:
+      - ./react-ui:/app:cached
+      - ./mockrift:/mockrift
+      - /app/node_modules
