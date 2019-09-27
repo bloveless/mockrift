@@ -1,6 +1,7 @@
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const { DefinePlugin } = require('webpack');
 const path = require('path');
 
 module.exports = (env, argv) => ({
@@ -40,6 +41,9 @@ module.exports = (env, argv) => ({
         ],
     },
     plugins: [
+        new DefinePlugin({
+            'process.env.MODE': JSON.stringify(argv.mode),
+        }),
         new CleanWebpackPlugin(),
         new HtmlWebPackPlugin({
             template: "./src/index.html",

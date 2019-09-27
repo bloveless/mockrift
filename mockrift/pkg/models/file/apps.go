@@ -79,7 +79,3 @@ func (m *AppModel) Save(app *models.App) {
 	}
 }
 
-/*
-// TODO: These function need to be split up into storage methods (load and save) and stuff that needs to happen on the model data
-// which should go in the package above this models.go
-*/

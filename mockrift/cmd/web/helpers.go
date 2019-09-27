@@ -20,4 +20,3 @@ func (a *application) clientError(w http.ResponseWriter, status int) {
 func (a *application) notFound(w http.ResponseWriter) {
 	a.clientError(w, http.StatusNotFound)
 }
-

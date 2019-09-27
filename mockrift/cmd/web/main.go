@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
+	"github.com/graphql-go/handler"
 	"html/template"
 	"log"
 	"mockrift/pkg/models/file"
@@ -21,6 +22,7 @@ type application struct {
 	recordOnly    bool
 	apps          *file.AppModel
 	templateCache map[string]*template.Template
+	templateData  *templateData
 }
 
 func main() {
@@ -39,6 +41,9 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
+	td := &templateData{}
+	addDefaultData(td)
+
 	app := &application{
 		infoLog:       infoLog,
 		errorLog:      errorLog,
@@ -46,6 +51,7 @@ func main() {
 		recordOnly:    false,
 		apps:          &file.AppModel{},
 		templateCache: tc,
+		templateData:  td,
 	}
 
 	r := chi.NewRouter()
@@ -58,11 +64,20 @@ func main() {
 
 	fs := http.StripPrefix("/static", http.FileServer(http.Dir("./ui/static")))
 
-	r.Get("/static", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
 
+	schema := getSchema()
+
+	h := handler.New(&handler.Config{
+		Schema:   &schema,
+		Pretty:   true,
+		GraphiQL: true,
+	})
+
 	r.Mount("/admin", app.adminRouter())
+	r.Handle("/admin/graphql", h)
 	r.Mount("/m", app.mockRouter())
 
 	s := &http.Server{
