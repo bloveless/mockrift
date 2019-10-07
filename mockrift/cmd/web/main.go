@@ -76,8 +76,8 @@ func main() {
 		GraphiQL: true,
 	})
 
-	r.Mount("/admin", app.adminRouter())
 	r.Handle("/admin/graphql", h)
+	r.Mount("/admin", app.adminRouter())
 	r.Mount("/m", app.mockRouter())
 
 	s := &http.Server{

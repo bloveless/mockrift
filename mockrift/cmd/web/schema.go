@@ -7,15 +7,76 @@ import (
 )
 
 func getSchema() graphql.Schema {
-	var appType = graphql.NewObject(
+	var headerType = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "App",
+			Name: "Header",
 			Fields: graphql.Fields{
 				"name": &graphql.Field{
 					Type: graphql.String,
 				},
-				"alias": &graphql.Field{
+				"value": &graphql.Field{
+					Type: graphql.NewList(graphql.String),
+				},
+			},
+		},
+	)
+
+	var responseType = graphql.NewObject(
+		graphql.ObjectConfig{
+			Name:        "Response",
+			Description: "",
+			Fields: graphql.Fields{
+				"active": &graphql.Field{
+					Type: graphql.Boolean,
+				},
+				"status_code": &graphql.Field{
+					Type: graphql.Int,
+				},
+				"header": &graphql.Field{
+					Type: graphql.NewList(headerType),
+				},
+				"body": &graphql.Field{
 					Type: graphql.String,
+				},
+			},
+		},
+	)
+
+	var requestType = graphql.NewObject(
+		graphql.ObjectConfig{
+			Name: "Request",
+			Fields: graphql.Fields{
+				"method": &graphql.Field{
+					Type: graphql.String,
+				},
+				"url": &graphql.Field{
+					Type: graphql.String,
+				},
+				"header": &graphql.Field{
+					Type: graphql.NewList(headerType),
+				},
+				"body": &graphql.Field{
+					Type: graphql.String,
+				},
+				"responses": &graphql.Field{
+					Type: graphql.NewList(responseType),
+				},
+			},
+		},
+	)
+
+	var appType = graphql.NewObject(
+		graphql.ObjectConfig{
+			Name: "App",
+			Fields: graphql.Fields{
+				"slug": &graphql.Field{
+					Type: graphql.String,
+				},
+				"name": &graphql.Field{
+					Type: graphql.String,
+				},
+				"requests": &graphql.Field{
+					Type: graphql.NewList(requestType),
 				},
 			},
 		},
@@ -23,8 +84,8 @@ func getSchema() graphql.Schema {
 
 	apps := []*models.App{
 		{
-			Name:  "Blah",
-			Alias: "blah",
+			Slug: "blah",
+			Name: "Blah",
 		},
 	}
 
@@ -33,13 +94,13 @@ func getSchema() graphql.Schema {
 			Type:        appType,
 			Description: "",
 			Args: graphql.FieldConfigArgument{
-				"alias": &graphql.ArgumentConfig{
+				"slug": &graphql.ArgumentConfig{
 					Type: graphql.NewNonNull(graphql.String),
 				},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				for _, app := range apps {
-					if app.Alias == params.Args["alias"].(string) {
+					if app.Slug == params.Args["slug"].(string) {
 						return app, nil
 					}
 				}

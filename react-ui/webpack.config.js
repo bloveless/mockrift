@@ -21,6 +21,11 @@ module.exports = (env, argv) => ({
         publicPath: '/static/react/',
         filename: argv.mode === 'production' ? '[name].[chunkhash].bundle.js' : '[name].bundle.js',
     },
+    optimization: {
+        splitChunks: {
+            chunks: 'all',
+        },
+    },
     module: {
         rules: [
             {

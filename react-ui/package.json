@@ -11,8 +11,12 @@
     "build": "webpack --mode production"
   },
   "dependencies": {
+    "@apollo/react-hooks": "^3.1.2",
+    "apollo-boost": "^0.4.4",
+    "graphql": "^14.5.8",
     "react": "^16.9.0",
-    "react-dom": "^16.9.0"
+    "react-dom": "^16.9.0",
+    "react-router-dom": "^5.1.2"
   },
   "devDependencies": {
     "@babel/core": "^7.6.2",

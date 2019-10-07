@@ -5,6 +5,7 @@ package helper
 import (
 	"bytes"
 	"log"
+	"mockrift/pkg/models"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -33,7 +34,15 @@ func DoClientRequest(c *http.Client, r *http.Request) *http.Response {
 	return res
 }
 
-func CopyHeaders(headers http.Header, w http.ResponseWriter) {
+func CopyHeadersFromStoredResponse(headers []*models.StoredHeader, w http.ResponseWriter) {
+	for _, header := range headers {
+		for _, hValue := range header.Value {
+			w.Header().Add(header.Name, hValue)
+		}
+	}
+}
+
+func CopyHeadersFromRequest(headers http.Header, w http.ResponseWriter) {
 	for hKey, hValues := range headers {
 		for _, hValue := range hValues {
 			w.Header().Add(hKey, hValue)

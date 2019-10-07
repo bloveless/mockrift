@@ -24,13 +24,4 @@ services:
       - /app/node_modules
     ports:
       - 8080:8080
-
-  frontend-build:
-    build:
-      context: .
-      dockerfile: deploy/docker/frontend/Dockerfile
-    command: ["sh", "-c", "yarn install && yarn build"]
-    volumes:
-      - ./react-ui:/app:cached
-      - ./mockrift:/mockrift
-      - /app/node_modules
+      - 8888:8888

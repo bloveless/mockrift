@@ -7,32 +7,37 @@ import (
 )
 
 type App struct {
-	Name     string
-	Alias    string
-	Requests []*StoredRequest
+	Slug     string           `json:"slug"`
+	Name     string           `json:"name"`
+	Requests []*StoredRequest `json:"requests"`
+}
+
+type StoredHeader struct {
+	Name  string   `json:"name"`
+	Value []string `json:"value"`
 }
 
 type StoredResponse struct {
-	Active     bool        `file:"active"`
-	StatusCode int         `file:"status_code"`
-	Header     http.Header `file:"header"`
-	Body       []byte      `file:"body"`
+	Active     bool           `json:"active"`
+	StatusCode int            `json:"status_code"`
+	Header     []*StoredHeader `json:"header"`
+	Body       []byte         `json:"body"`
 }
 
 type StoredRequest struct {
-	Method    string            `file:"method"`
-	URL       string            `file:"url"`
-	Header    http.Header       `file:"header"`
-	Body      []byte            `file:"body"`
-	Responses []*StoredResponse `file:"responses"`
+	Method    string            `json:"method"`
+	URL       string            `json:"url"`
+	Header    []*StoredHeader    `json:"header"`
+	Body      []byte            `json:"body"`
+	Responses []*StoredResponse `json:"responses"`
 }
 
 func (a *App) GetName() string {
-	if a.Alias != "" {
-		return a.Alias
+	if a.Name != "" {
+		return a.Name
 	}
 
-	return a.Name
+	return a.Slug
 }
 
 func (a *App) FindRequest(m string, url string, body []byte) *StoredRequest {
@@ -67,10 +72,19 @@ func (a *App) FindResponseByRequestParams(m string, url string, body []byte) *St
 func (a *App) AddResponseAndRequest(req *http.Request, url string, reqBody []byte, res *http.Response, resBody []byte) {
 	sRes := StoredResponse{
 		Active:     false,
-		Header:     res.Header,
 		StatusCode: res.StatusCode,
 		Body:       resBody,
 	}
+
+	var resHeaders []*StoredHeader
+	for name, value := range res.Header {
+		resHeaders = append(resHeaders, &StoredHeader{
+			Name:  name,
+			Value: value,
+		})
+	}
+
+	sRes.Header = resHeaders
 
 	r := a.FindRequest(req.Method, url, reqBody)
 	if r != nil {
@@ -85,12 +99,21 @@ func (a *App) AddResponseAndRequest(req *http.Request, url string, reqBody []byt
 		sReq := StoredRequest{
 			Method: req.Method,
 			URL:    url,
-			Header: req.Header,
 			Body:   reqBody,
 			Responses: []*StoredResponse{
 				&sRes,
 			},
 		}
+
+		var reqHeaders []*StoredHeader
+		for name, value := range req.Header {
+			reqHeaders = append(reqHeaders, &StoredHeader{
+				Name:  name,
+				Value: value,
+			})
+		}
+
+		sReq.Header = reqHeaders
 
 		a.Requests = append(a.Requests, &sReq)
 	}

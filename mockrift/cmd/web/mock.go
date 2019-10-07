@@ -21,7 +21,7 @@ func (a *application) handleMock() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		appName := chi.URLParam(r, "app")
-		path := chi.URLParam(r, "path")
+		path := "/" + chi.URLParam(r, "path")
 
 		reqBody, reqBodyErr := ioutil.ReadAll(r.Body)
 		if reqBodyErr != nil {
@@ -35,7 +35,7 @@ func (a *application) handleMock() http.HandlerFunc {
 		storedRes := app.FindResponseByRequestParams(r.Method, path, reqBody)
 		if !a.recordOnly && storedRes != nil {
 			fmt.Println("Sending response from memory")
-			helper.CopyHeaders(storedRes.Header, w)
+			helper.CopyHeadersFromStoredResponse(storedRes.Header, w)
 			w.WriteHeader(storedRes.StatusCode)
 			helper.CopyBodyToClient(w, storedRes.Body)
 		} else {
@@ -52,11 +52,12 @@ func (a *application) handleMock() http.HandlerFunc {
 
 			fmt.Printf("Client response body: %v\n", string(cBody))
 
-			helper.CopyHeaders(cReq.Header, w)
+			helper.CopyHeadersFromRequest(cReq.Header, w)
 			w.WriteHeader(cRes.StatusCode)
 			helper.CopyBodyToClient(w, cBody)
 
 			app.AddResponseAndRequest(r, path, reqBody, cRes, cBody)
+			a.apps.Save(app)
 		}
 	}
 }
