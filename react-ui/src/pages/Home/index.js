@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { GET_APPS_QUERY } from '../../utils/queries';
 import { useQuery } from '@apollo/react-hooks';
 
@@ -12,7 +13,9 @@ const Home = () => {
                 {loading && <li>Loading...</li>}
                 {!loading && error && <li>There was an error: {error}</li>}
                 {!loading && !error && data && data.apps && data.apps.map((app) => (
-                    <li key={app.slug}>{app.name || app.slug}</li>
+                    <li key={app.slug}>
+                        <Link to={`/app/${app.slug}`}>{app.name || app.slug}</Link>
+                    </li>
                 ))}
             </ul>
         </div>

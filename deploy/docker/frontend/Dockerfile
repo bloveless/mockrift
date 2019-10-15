@@ -1,4 +1,4 @@
-FROM node:12.8-alpine
+FROM node:12.12-alpine
 
 RUN apk add --no-cache curl gnupg \
     && mkdir /app \
