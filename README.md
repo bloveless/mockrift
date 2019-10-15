@@ -2,6 +2,31 @@
 
 What is mockrift. Contract testing for developers and CI/CD environments.
 
+Turn this into a sales pitch.
+
+---
+
+Essentially it is a contract testing/mocking framework for systems that require use of external/internal APIs.
+So when you are a developer you can turn on mockrift and put it in proxy mode. It will record all the requests you send to it and all the responses that come back from the backend. It can then do matching based on method, url, body, and headers and return responses in leu of the backend.
+
+So as a developer you can build interesting responses that test specific scenarios in your UI and just have mockrift replay those scenarios.
+
+It can record multiple responses for every request and the developer can just pick the active one and it will serve up the active response over and over again.
+
+Think of Younique when we had to use postman to insert garbage into the request so we could test errors and stuff like that. Well in mockrift you can just record it, share it, and replay it.
+
+Then there is the CI/CD part. You can use those responses and convert them into contracts. Mockrift will play requests to your backend and verify that the response matches the contract. That part is the headless part. You’d run mockrift in your CI/CD environment and tell it to play a scenario. It would hit your backend with a suite of requests and verify that every response that comes back exactly matches your contract. Other wise the test fails.
+
+The idea is that you’d be able to commit your contracts as something like a git submodule within both projects (say you are building two apis that communicate) then mockrift can function on both ends to verify the neither project has broken their contract.
+
+And neither project would ever actually have to talk to each other.
+
+It is also built as a single docker container with no external dependencies (I.E. MySQL or Mongo), so you can include it super easily.
+
+You are welcome to run the project using straight go if you’d like. Maybe as a zip/binary that can just be run to make it easier... not sure about that one.
+
+---
+
 Companion app for testing [Shopping Cart Demo](https://github.com/bloveless/demo-shopping-cart)
 GraphQL first then REST later.
 
