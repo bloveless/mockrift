@@ -3,10 +3,11 @@ package main
 import (
 	"github.com/graphql-go/graphql"
 	"log"
-	"mockrift/pkg/models"
 )
 
-func getSchema() graphql.Schema {
+func (s *server) getSchema() graphql.Schema {
+	apps := s.apps.GetAll()
+
 	var headerType = graphql.NewObject(
 		graphql.ObjectConfig{
 			Name: "Header",
@@ -81,13 +82,6 @@ func getSchema() graphql.Schema {
 			},
 		},
 	)
-
-	apps := []*models.App{
-		{
-			Slug: "blah",
-			Name: "Blah",
-		},
-	}
 
 	fields := graphql.Fields{
 		"app": &graphql.Field{

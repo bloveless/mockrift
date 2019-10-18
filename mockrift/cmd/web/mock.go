@@ -1,22 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/go-chi/chi"
 	"io/ioutil"
 	"log"
-	"mockrift/pkg/helper"
 	"mockrift/pkg/models"
 	"net/http"
 )
 
-func (a *application) mockRouter() http.Handler {
+func (s *server) mockRouter() http.Handler {
 	r := chi.NewRouter()
-	r.Handle("/{app:[a-z-]+}/{path}", a.handleMock())
+	r.Handle("/{app:[s-z-]+}/{path}", s.handleMock())
 	return r
 }
 
-func (a *application) handleMock() http.HandlerFunc {
+func (s *server) handleMock() http.HandlerFunc {
 	var app *models.App
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,21 +29,21 @@ func (a *application) handleMock() http.HandlerFunc {
 		}
 
 		if app == nil || app.Name != appName {
-			app = a.apps.Get(appName)
+			app = s.apps.Get(appName)
 		}
 
 		storedRes := app.FindResponseByRequestParams(r.Method, path, reqBody)
-		if !a.recordOnly && storedRes != nil {
+		if !s.recordOnly && storedRes != nil {
 			fmt.Println("Sending response from memory")
-			helper.CopyHeadersFromStoredResponse(storedRes.Header, w)
+			copyHeadersFromStoredResponse(storedRes.Header, w)
 			w.WriteHeader(storedRes.StatusCode)
-			helper.CopyBodyToClient(w, storedRes.Body)
+			copyBodyToClient(w, storedRes.Body)
 		} else {
 			fmt.Println("Proxying response to real backend")
-			cReq := helper.CreateClientRequest(r.Method, "http://host.docker.internal:4000"+path, reqBody)
+			cReq := createClientRequest(r.Method, "http://host.docker.internal:4000"+path, reqBody)
 			defer cReq.Body.Close()
 
-			cRes := helper.DoClientRequest(a.client, cReq)
+			cRes := doClientRequest(s.client, cReq)
 
 			cBody, cBodyErr := ioutil.ReadAll(cRes.Body)
 			if cBodyErr != nil {
@@ -52,12 +52,53 @@ func (a *application) handleMock() http.HandlerFunc {
 
 			fmt.Printf("Client response body: %v\n", string(cBody))
 
-			helper.CopyHeadersFromRequest(cReq.Header, w)
+			copyHeadersFromRequest(cReq.Header, w)
 			w.WriteHeader(cRes.StatusCode)
-			helper.CopyBodyToClient(w, cBody)
+			copyBodyToClient(w, cBody)
 
 			app.AddResponseAndRequest(r, path, reqBody, cRes, cBody)
-			a.apps.Save(app)
+			s.apps.Save(app)
 		}
+	}
+}
+
+func createClientRequest(method string, url string, body []byte) *http.Request {
+	r, rErr := http.NewRequest(method, url, bytes.NewReader(body))
+	if rErr != nil {
+		log.Fatal(rErr)
+	}
+
+	return r
+}
+
+func doClientRequest(c *http.Client, r *http.Request) *http.Response {
+	res, resErr := c.Do(r)
+	if resErr != nil {
+		log.Fatal(resErr)
+	}
+
+	return res
+}
+
+func copyHeadersFromStoredResponse(headers []*models.StoredHeader, w http.ResponseWriter) {
+	for _, header := range headers {
+		for _, hValue := range header.Value {
+			w.Header().Add(header.Name, hValue)
+		}
+	}
+}
+
+func copyHeadersFromRequest(headers http.Header, w http.ResponseWriter) {
+	for hKey, hValues := range headers {
+		for _, hValue := range hValues {
+			w.Header().Add(hKey, hValue)
+		}
+	}
+}
+
+func copyBodyToClient(w http.ResponseWriter, cBody []byte) {
+	_, wErr := w.Write(cBody)
+	if wErr != nil {
+		log.Fatal(wErr)
 	}
 }

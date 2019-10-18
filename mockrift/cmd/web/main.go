@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type application struct {
+type server struct {
 	errorLog      *log.Logger
 	infoLog       *log.Logger
 	client        *http.Client
@@ -44,7 +44,7 @@ func main() {
 	td := &templateData{}
 	addDefaultData(td)
 
-	app := &application{
+	s := &server{
 		infoLog:       infoLog,
 		errorLog:      errorLog,
 		client:        client,
@@ -68,7 +68,7 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	schema := getSchema()
+	schema := s.getSchema()
 
 	h := handler.New(&handler.Config{
 		Schema:   &schema,
@@ -77,10 +77,10 @@ func main() {
 	})
 
 	r.Handle("/admin/graphql", h)
-	r.Mount("/admin", app.adminRouter())
-	r.Mount("/m", app.mockRouter())
+	r.Mount("/admin", s.adminRouter())
+	r.Mount("/m", s.mockRouter())
 
-	s := &http.Server{
+	httpServer := &http.Server{
 		Addr:           *addr,
 		Handler:        r,
 		ReadTimeout:    10 * time.Second,
@@ -89,5 +89,5 @@ func main() {
 	}
 
 	fmt.Printf("Starting server at %s\n", *addr)
-	log.Fatal(s.ListenAndServe())
+	log.Fatal(httpServer.ListenAndServe())
 }

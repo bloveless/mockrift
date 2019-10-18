@@ -6,19 +6,19 @@ import (
 	"net/http"
 )
 
-func (a *application) adminRouter() http.Handler {
+func (s *server) adminRouter() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/*", a.handleReact)
+	r.Get("/*", s.handleReact)
 	return r
 }
 
-func (a *application) handleReact(w http.ResponseWriter, r *http.Request) {
-	tmpl := a.templateCache["react.tmpl"]
+func (s *server) handleReact(w http.ResponseWriter, r *http.Request) {
+	tmpl := s.templateCache["react.tmpl"]
 
-	fmt.Println(a.templateData)
+	fmt.Println(s.templateData)
 
-	execErr := tmpl.Execute(w, a.templateData)
+	execErr := tmpl.Execute(w, s.templateData)
 	if execErr != nil {
-		a.serverError(w, fmt.Errorf("unable to execute template: %s", execErr.Error()))
+		s.serverError(w, fmt.Errorf("unable to execute template: %s", execErr.Error()))
 	}
 }

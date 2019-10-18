@@ -1,5 +1,7 @@
 FROM node:12.12-alpine
 
+EXPOSE 8080
+
 RUN apk add --no-cache curl gnupg \
     && mkdir /app \
     && chown -R node:node /app

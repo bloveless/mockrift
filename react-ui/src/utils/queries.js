@@ -9,4 +9,31 @@ const GET_APPS_QUERY = gql`
     }
 `;
 
-export { GET_APPS_QUERY };
+const GET_APP_QUERY = gql`
+    query getApp($slug: String!) {
+        app(slug: $slug) {
+            name
+            slug
+            requests {
+                url
+                method
+                header {
+                    name
+                    value
+                }
+                body
+                responses {
+                    active
+                    body
+                    status_code
+                    header {
+                        name
+                        value
+                    }
+                }
+            }
+        }
+    }
+`;
+
+export { GET_APPS_QUERY, GET_APP_QUERY };

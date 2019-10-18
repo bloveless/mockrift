@@ -13,7 +13,7 @@ import (
 type AppModel struct{}
 
 func (m *AppModel) GetAll() []*models.App {
-	appFiles, gErr := filepath.Glob("./requests/*.file")
+	appFiles, gErr := filepath.Glob("./requests/*.json")
 	if gErr != nil {
 		log.Fatal("Error loading request files: " + gErr.Error())
 	}
