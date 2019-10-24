@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GET_APPS_QUERY } from '../../utils/queries';
+import { GET_APPS_QUERY } from '../utils/queries';
 import { useQuery } from '@apollo/react-hooks';
 
 const Home = () => {

@@ -15,6 +15,7 @@ const GET_APP_QUERY = gql`
             name
             slug
             requests {
+                id
                 url
                 method
                 header {
@@ -23,6 +24,7 @@ const GET_APP_QUERY = gql`
                 }
                 body
                 responses {
+                    id 
                     active
                     body
                     status_code

@@ -3,6 +3,7 @@ package models
 import (
 	"bytes"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -18,16 +19,18 @@ type StoredHeader struct {
 }
 
 type StoredResponse struct {
-	Active     bool           `json:"active"`
-	StatusCode int            `json:"status_code"`
+	ID         string          `json:"id"`
+	Active     bool            `json:"active"`
+	StatusCode int             `json:"status_code"`
 	Header     []*StoredHeader `json:"header"`
-	Body       []byte         `json:"body"`
+	Body       []byte          `json:"body"`
 }
 
 type StoredRequest struct {
+	ID        string            `json:"id"`
 	Method    string            `json:"method"`
 	URL       string            `json:"url"`
-	Header    []*StoredHeader    `json:"header"`
+	Header    []*StoredHeader   `json:"header"`
 	Body      []byte            `json:"body"`
 	Responses []*StoredResponse `json:"responses"`
 }
@@ -71,6 +74,7 @@ func (a *App) FindResponseByRequestParams(m string, url string, body []byte) *St
 
 func (a *App) AddResponseAndRequest(req *http.Request, url string, reqBody []byte, res *http.Response, resBody []byte) {
 	sRes := StoredResponse{
+		ID:       uuid.New().String(),
 		Active:     false,
 		StatusCode: res.StatusCode,
 		Body:       resBody,
@@ -97,6 +101,7 @@ func (a *App) AddResponseAndRequest(req *http.Request, url string, reqBody []byt
 		sRes.Active = true
 
 		sReq := StoredRequest{
+			ID:   uuid.New().String(),
 			Method: req.Method,
 			URL:    url,
 			Body:   reqBody,

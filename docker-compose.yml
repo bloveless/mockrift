@@ -6,8 +6,6 @@ services:
       context: .
       dockerfile: deploy/docker/server/Dockerfile
       target: builder
-    environment:
-      GIN_MODE: debug
     command: ["modd", "-f", "modd.conf"]
     volumes:
       - ./mockrift:/home/appuser/app
@@ -24,4 +22,3 @@ services:
       - /app/node_modules
     ports:
       - 8080:8080
-      - 8888:8888

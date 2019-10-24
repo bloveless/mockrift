@@ -2,8 +2,33 @@ package main
 
 import (
 	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
 	"log"
 )
+
+func makeString(value interface{}) interface{} {
+	if v, ok := value.(*[]byte); ok {
+		if v == nil {
+			return nil
+		}
+		return *v
+	}
+	return value
+}
+
+var Base64Type = graphql.NewScalar(graphql.ScalarConfig{
+	Name:        "Base64Type",
+	Description: "Base64Type representation of a string.",
+	Serialize:   makeString,
+	ParseValue:  makeString,
+	ParseLiteral: func(valueAST ast.Value) interface{} {
+		switch valueAST := valueAST.(type) {
+		case *ast.StringValue:
+			return valueAST.Value
+		}
+		return nil
+	},
+})
 
 func (s *server) getSchema() graphql.Schema {
 	apps := s.apps.GetAll()
@@ -27,6 +52,9 @@ func (s *server) getSchema() graphql.Schema {
 			Name:        "Response",
 			Description: "",
 			Fields: graphql.Fields{
+				"id": &graphql.Field{
+					Type: graphql.ID,
+				},
 				"active": &graphql.Field{
 					Type: graphql.Boolean,
 				},
@@ -37,7 +65,7 @@ func (s *server) getSchema() graphql.Schema {
 					Type: graphql.NewList(headerType),
 				},
 				"body": &graphql.Field{
-					Type: graphql.String,
+					Type: Base64Type,
 				},
 			},
 		},
@@ -47,6 +75,9 @@ func (s *server) getSchema() graphql.Schema {
 		graphql.ObjectConfig{
 			Name: "Request",
 			Fields: graphql.Fields{
+				"id": &graphql.Field{
+					Type: graphql.ID,
+				},
 				"method": &graphql.Field{
 					Type: graphql.String,
 				},
@@ -57,7 +88,7 @@ func (s *server) getSchema() graphql.Schema {
 					Type: graphql.NewList(headerType),
 				},
 				"body": &graphql.Field{
-					Type: graphql.String,
+					Type: Base64Type,
 				},
 				"responses": &graphql.Field{
 					Type: graphql.NewList(responseType),
