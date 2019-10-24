@@ -1,12 +1,10 @@
 import React from 'react';
 import BodyDetails from "./BodyDetails";
+import { getContentTypeValue } from "../utils/helpers";
 
 const ResponseDetails = ({ response }) => {
-    const contentTypeHeader = response.header && response.header.find((header) => header.name === 'Content-Type');
-    const contentTypeValue = contentTypeHeader && contentTypeHeader.value.length > 0 && contentTypeHeader.value[0].split(';')[0];
-
     return (
-        <div style={{ border: '1px solid black', padding: '1em' }}>
+        <div style={{ border: '1px solid black' }}>
             <h2>Response</h2>
             <div><b>ID: </b>{response.id}</div>
             <div><b>Active: </b>{response.active}</div>
@@ -17,7 +15,7 @@ const ResponseDetails = ({ response }) => {
                     <dd>{value}</dd>
                 </React.Fragment>
             ))}</div>
-            <BodyDetails contentType={contentTypeValue} base64Body={response.body}/>
+            <BodyDetails contentType={getContentTypeValue(response.header)} id={response.id} base64Body={response.body}/>
         </div>
     )
 };

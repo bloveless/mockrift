@@ -1,11 +1,11 @@
 import React from 'react';
 import ResponseDetails from './ResponseDetails';
 import BodyDetails from "./BodyDetails";
+import { getContentTypeValue } from "../utils/helpers";
 
 const RequestDetails = ({ app }) => {
-    console.log('app.requests', app.requests);
     return (
-        <div style={{border: '1px solid red', padding: '1em'}}>
+        <div style={{ border: '1px solid red' }}>
             <h2>Request</h2>
             {app && app.requests && app.requests.map((request) => (
                 <div key={`request-${request.id}`}>
@@ -18,7 +18,7 @@ const RequestDetails = ({ app }) => {
                             <dd>{value}</dd>
                         </React.Fragment>
                     ))}</dl>
-                    <BodyDetails base64Body={request.body}/>
+                    <BodyDetails id={request.id} contentType={getContentTypeValue(request.header)}  base64Body={request.body}/>
                     <div>{request.responses && request.responses.map(response => (
                         <ResponseDetails key={`request-${request.id}-response-${response.id}`} response={response}/>
                     ))}</div>
