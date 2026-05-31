@@ -3,11 +3,10 @@ import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/react-hooks';
 import Home from './pages/Home';
 import AppDetails from './pages/AppDetails';
-import { getClient } from './utils/apollo-client';
-import { getSettings } from './utils/settings';
+import { getDefaultClient } from './utils/apollo-client';
 
 const App = () => (
-    <ApolloProvider client={getClient(getSettings(process.env.MODE).API_URL)}>
+    <ApolloProvider client={getDefaultClient()}>
         <Router basename="/admin">
             <Switch>
                 <Route path="/app/:slug" component={AppDetails}/>

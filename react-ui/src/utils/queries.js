@@ -38,4 +38,19 @@ const GET_APP_QUERY = gql`
     }
 `;
 
-export { GET_APPS_QUERY, GET_APP_QUERY };
+const UPDATE_REQUEST_BODY = gql`
+    mutation modifyRequestBody($id: ID!, $body: String!) {
+        modifyRequestBody(id: $id, body: $body) {
+            id
+            url
+            method
+            body
+        }
+    }
+`;
+
+export {
+    GET_APPS_QUERY,
+    GET_APP_QUERY,
+    UPDATE_REQUEST_BODY,
+};

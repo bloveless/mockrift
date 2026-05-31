@@ -15,7 +15,11 @@ const ResponseDetails = ({ response }) => {
                     <dd>{value}</dd>
                 </React.Fragment>
             ))}</div>
-            <BodyDetails contentType={getContentTypeValue(response.header)} id={response.id} base64Body={response.body}/>
+            <BodyDetails
+                contentType={getContentTypeValue(response.header)}
+                id={response.id}
+                base64Body={response.body}
+            />
         </div>
     )
 };

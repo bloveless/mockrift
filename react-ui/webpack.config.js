@@ -1,7 +1,7 @@
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const { DefinePlugin } = require('webpack');
+const { DefinePlugin, SourceMapDevToolPlugin } = require('webpack');
 const path = require('path');
 
 module.exports = (env, argv) => ({
@@ -16,6 +16,7 @@ module.exports = (env, argv) => ({
             ],
         },
     },
+    devtool: argv.mode === 'production' ? false : 'eval-source-map',
     output: {
         path: path.resolve(__dirname, '/mockrift/ui/static/react/'),
         publicPath: '/static/react/',

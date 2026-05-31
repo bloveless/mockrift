@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/base64"
+	"fmt"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
 	"log"
@@ -142,8 +144,41 @@ func (s *server) getSchema() graphql.Schema {
 		},
 	}
 
+	mutationFields := graphql.Fields{
+		"modifyRequestBody": &graphql.Field{
+			Type:        requestType,
+			Description: "",
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.ID),
+				},
+				"body": &graphql.ArgumentConfig{
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				for _, app := range apps {
+					for _, req := range app.Requests {
+						if req.ID == p.Args["id"] {
+							decoded, err := base64.StdEncoding.DecodeString(p.Args["body"].(string))
+							if err != nil {
+								return nil, fmt.Errorf("unable to decode body")
+							}
+							req.Body = decoded
+							// TODO: Save updated request here
+							return req, nil
+						}
+					}
+				}
+
+				return nil, nil
+			},
+		},
+	}
+
 	rootQuery := graphql.ObjectConfig{Name: "RootQuery", Fields: fields}
-	schemaConfig := graphql.SchemaConfig{Query: graphql.NewObject(rootQuery)}
+	rootMutation := graphql.ObjectConfig{Name: "RootMutation", Fields: mutationFields}
+	schemaConfig := graphql.SchemaConfig{Query: graphql.NewObject(rootQuery), Mutation: graphql.NewObject(rootMutation)}
 	schema, err := graphql.NewSchema(schemaConfig)
 	if err != nil {
 		log.Fatalf("failed to create new schema, error: %v", err)
